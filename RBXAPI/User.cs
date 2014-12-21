@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace RBXAPI
 {
@@ -185,7 +186,7 @@ namespace RBXAPI
 				tresp.Close();
 				return response["success"].Value<bool>();
 			}
-			catch (WebException e)
+			catch (WebException)
 			{
 				return false;
 			}
@@ -215,9 +216,9 @@ namespace RBXAPI
 		}
 		public List<PrivateMessage> GetPMs(int MessagesPerPage = 20)
 		{
-			List<PrivateMessage> ret = new List<PrivateMessage>();
 			if (!this.IsLoggedIn)
 				throw new InvalidOperationException("Unauthorized action");
+			List<PrivateMessage> ret = new List<PrivateMessage>();
 			object[] resp = GetPMs(MessagesPerPage, 0);
 			int numPages = (int)resp[0];
 			JArray pms = (JArray)resp[1];
@@ -236,6 +237,68 @@ namespace RBXAPI
 			}
 
 			return ret;
+		}
+
+		private const string PostToGroupWallFormData = "__EVENTTARGET={0}&__EVENTARGUMENT={1}&__LASTFOCUS={2}&__VIEWSTATE={3}&__VIEWSTATEGENERATOR={4}&__PREVIOUSPAGE={5}&__EVENTVALIDATION={6}&__RequestVerificationToken={7}&ctl00%24cphRoblox%24GroupWallPane%24NewPost={8}&ctl00%24cphRoblox%24GroupWallPane%24NewPostButton=Post";
+		public bool PostToGroupWall(Group tGroup, string message)
+		{
+			if (!this.IsLoggedIn)
+				throw new InvalidOperationException("Unauthorized action");
+			HttpWebRequest req = (HttpWebRequest)WebRequest.Create(String.Format("http://www.roblox.com/My/Groups.aspx?gid={0}", tGroup._gid));
+			req.CookieContainer = cookies;
+			WebResponse resp = req.GetResponse();
+			StreamReader rstream = new StreamReader(resp.GetResponseStream());
+			string response = rstream.ReadToEnd();
+			rstream.Close();
+
+			Match EventTarget              = Regex.Match(response, "<input type=\"hidden\" name=\"__EVENTTARGET\" id=\"__EVENTTARGET\" value=\"(.*)\" />");
+			string EventTargetText         = EventTarget.Success ? EventTarget.Groups[1].Value : "";
+
+			Match EventArgument            = Regex.Match(response, "<input type=\"hidden\" name=\"__EVENTARGUMENT\" id=\"__EVENTARGUMENT\" value=\"(.*)\" />");
+			string EventArgumentText       = EventArgument.Success ? EventArgument.Groups[1].Value : "";
+
+			Match LastFocus                = Regex.Match(response, "<input type=\"hidden\" name=\"__LASTFOCUS\" id=\"__LASTFOCUS\" value=\"(.*)\" />");
+			string LastFocusText           = LastFocus.Success ? LastFocus.Groups[1].Value : "";
+
+			Match ViewState                = Regex.Match(response, "<input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"(.*)\" />");
+			string ViewStateText           = ViewState.Success ? ViewState.Groups[1].Value : "";
+
+			Match ViewStateGen             = Regex.Match(response, "<input type=\"hidden\" name=\"__VIEWSTATEGENERATOR\" id=\"__VIEWSTATEGENERATOR\" value=\"(.*)\" />");
+			string ViewStateGenText        = ViewStateGen.Success ? ViewStateGen.Groups[1].Value : "";
+
+			Match PreviousPage             = Regex.Match(response, "<input type=\"hidden\" name=\"__PREVIOUSPAGE\" id=\"__PREVIOUSPAGE\" value=\"(.*)\" />");
+			string PreviousPageText        = PreviousPage.Success ? PreviousPage.Groups[1].Value : "";
+
+			Match EventValidation          = Regex.Match(response, "<input type=\"hidden\" name=\"__EVENTVALIDATION\" id=\"__EVENTVALIDATION\" value=\"(.*)\" />");
+			string EventValidationText     = EventValidation.Success ? EventValidation.Groups[1].Value : "";
+
+			Match RequestVerification      = Regex.Match(response, "<input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(.*)\" />");
+			string RequestVerificationText = RequestVerification.Success ? RequestVerification.Groups[1].Value : "";
+
+
+			String form = String.Format(PostToGroupWallFormData, Uri.EscapeDataString(EventTargetText), Uri.EscapeDataString(EventArgumentText),
+				Uri.EscapeDataString(LastFocusText), Uri.EscapeDataString(ViewStateText), Uri.EscapeDataString(ViewStateGenText), Uri.EscapeDataString(PreviousPageText),
+				Uri.EscapeDataString(EventValidationText), Uri.EscapeDataString(RequestVerificationText), Uri.EscapeDataString(message));
+			HttpWebRequest req2 = (HttpWebRequest)WebRequest.Create(String.Format("http://www.roblox.com/My/Groups.aspx?gid={0}", tGroup._gid));
+			req2.CookieContainer = cookies;
+			req2.Method = "POST";
+			req2.ContentType = "application/x-www-form-urlencoded";
+			req2.ContentLength = form.Length;
+			StreamWriter body = new StreamWriter(req2.GetRequestStream());
+			body.Write(form);
+			body.Close();
+
+			try
+			{
+				HttpWebResponse resp2 = (HttpWebResponse)req2.GetResponse();
+				if (cookies != null)
+					cookies.Add(resp2.Cookies);
+				return resp2.StatusCode == HttpStatusCode.OK;
+			}
+			catch (WebException)
+			{
+				return false;
+			}
 		}
 		#endregion
 
@@ -320,7 +383,7 @@ namespace RBXAPI
 						{
 							string joutput = reader2.ReadToEnd();
 							JObject placedata = JObject.Parse(joutput);
-							DateTime created = (DateTime)placedata["Created"];
+							DateTime created = placedata["Created"].Value<DateTime>();
 							//Console.WriteLine("\"{0}\"", created);
 
 							return (DateTime.Now - created);

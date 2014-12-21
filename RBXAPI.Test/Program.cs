@@ -21,9 +21,11 @@ namespace RBXAPI.Test
 			}
 			Console.Write("Logged in: ");
 			Console.WriteLine(login.IsLoggedIn);
-			Group TheGroup = new Group(332588);
-			Console.Write("Setting rank: ");
-			Console.WriteLine(TheGroup.SetRole(login, new User("b6e"), 3909726));
+			Group TheGroup = new Group(238595);
+			//Console.Write("Setting rank: ");
+			//Console.WriteLine(TheGroup.SetRole(login, new User("b6e"), 3909726));
+			Console.Write("Posting to group wall: ");
+			Console.WriteLine(login.PostToGroupWall(TheGroup, "Hey testing here."));
 			Console.Read();
 		}
 	}

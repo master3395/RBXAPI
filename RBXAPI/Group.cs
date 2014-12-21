@@ -10,7 +10,7 @@ namespace RBXAPI
 {
 	public class Group
 	{
-		private uint _gid;
+		internal uint _gid;
 
 		public Group(uint GroupId)
 		{
@@ -37,7 +37,7 @@ namespace RBXAPI
 				tresp.Close();
 				return thing["success"].Value<bool>();
 			}
-			catch (WebException e)
+			catch (WebException)
 			{
 				return false;
 			}
