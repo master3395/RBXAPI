@@ -345,7 +345,7 @@ namespace RBXAPI
 		}
 		private uint GetUserId()
 		{
-			WebRequest req = WebRequest.Create("http://api.roblox.com/users/get-by-username?username=" + this._uname);
+			WebRequest req = WebRequest.Create("http://api.roblox.com/users/get-by-username?username=" + this.Username);
 			HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 			if (cookies != null)
 				cookies.Add(resp.Cookies);
@@ -356,8 +356,14 @@ namespace RBXAPI
 		}
 		private Group GetPrimaryGroup()
 		{
-			throw new NotImplementedException();
+			//throw new NotImplementedException();
 			//return new Group(0);
+			WebRequest req = WebRequest.Create(String.Format("http://www.roblox.com/Groups/GetPrimaryGroupInfo.ashx?users={0}", this.Username));
+			WebResponse rsp = req.GetResponse();
+			StreamReader resp = new StreamReader(rsp.GetResponseStream());
+			JObject response = JObject.Parse(resp.ReadToEnd());
+			resp.Close();
+			return new Group(response[this.Username]["GroupId"].Value<uint>());
 		}
 		private TimeSpan GetAccountAge()
 		{

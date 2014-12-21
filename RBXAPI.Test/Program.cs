@@ -21,11 +21,13 @@ namespace RBXAPI.Test
 			}
 			Console.Write("Logged in: ");
 			Console.WriteLine(login.IsLoggedIn);
-			Group TheGroup = new Group(238595);
-			//Console.Write("Setting rank: ");
-			//Console.WriteLine(TheGroup.SetRole(login, new User("b6e"), 3909726));
+			Group TheGroup = new Group(1);
+			Console.Write("Setting rank: ");
+			Console.WriteLine(TheGroup.SetRole(login, new User("digpoe"), GroupRole.ByName(TheGroup, "Member")));
 			Console.Write("Posting to group wall: ");
-			Console.WriteLine(login.PostToGroupWall(TheGroup, "Hey testing here."));
+			Console.WriteLine(login.PostToGroupWall(TheGroup, "This was posted by my C# Assembly, which wraps the ROBLOX API. Hi."));
+			Console.Write("Primary Group ID: ");
+			Console.WriteLine(login.PrimaryGroup.GroupId);
 			Console.Read();
 		}
 	}
